@@ -1,1 +1,6 @@
 .env
+.kilocode
+modules.xml
+vcs.xml
+url-shortener.iml
+.idea

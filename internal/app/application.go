@@ -6,9 +6,13 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"harmancioglue/url-shortener/internal/config"
+	"harmancioglue/url-shortener/internal/domain/service"
+	urlRepositoryLayer "harmancioglue/url-shortener/internal/infrastructure/repository/mysql"
+	"harmancioglue/url-shortener/internal/services"
 )
 
 type Application struct {
+	UrlService service.UrlService
 }
 
 func Init(config *config.Config) (*Application, error) {
@@ -27,5 +31,12 @@ func Init(config *config.Config) (*Application, error) {
 		return nil, errors.New("failed to connect database: " + err.Error())
 	}
 
+	//repositories
+	urlRepository := urlRepositoryLayer.NewUrlRepository(db)
+
+	//services
+	urlService := services.NewUrlService(urlRepository)
+
+	app.UrlService = urlService
 	return app, nil
 }
