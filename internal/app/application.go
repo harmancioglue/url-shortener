@@ -6,6 +6,7 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"harmancioglue/url-shortener/internal/config"
+	"harmancioglue/url-shortener/internal/domain/entity"
 	"harmancioglue/url-shortener/internal/domain/service"
 	urlRepositoryLayer "harmancioglue/url-shortener/internal/infrastructure/repository/mysql"
 	"harmancioglue/url-shortener/internal/services"
@@ -35,7 +36,14 @@ func Init(config *config.Config) (*Application, error) {
 	urlRepository := urlRepositoryLayer.NewUrlRepository(db)
 
 	//services
-	urlService := services.NewUrlService(urlRepository)
+	// Create ID generator with worker ID (can be configured via environment)
+	workerID := int64(1) // TODO: Make this configurable
+	idGenerator, err := services.NewSnowflakeIDGenerator(workerID)
+	if err != nil {
+		return nil, errors.New("failed to create ID generator: " + err.Error())
+	}
+
+	urlService := services.NewUrlService(urlRepository, idGenerator)
 
 	app.UrlService = urlService
 	return app, nil

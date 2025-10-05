@@ -7,4 +7,5 @@ import (
 
 type UrlService interface {
 	ShortenUrl(request request.ShortenURLRequest) (*response.ShortenURLResponse, error)
+	GetOriginalURL(shortCode string) (*response.GetURLResponse, error)
 }
