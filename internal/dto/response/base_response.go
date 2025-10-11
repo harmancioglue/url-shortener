@@ -50,3 +50,29 @@ func BadRequestResponse(c *fiber.Ctx, message string, details map[string]interfa
 		Timestamp: time.Now(),
 	})
 }
+
+func NotFoundResponse(c *fiber.Ctx, message string, details map[string]interface{}) error {
+	return c.Status(fiber.StatusNotFound).JSON(APIResponse{
+		Success: false,
+		Message: message,
+		Error: &APIError{
+			Code:    "NOT_FOUND",
+			Message: message,
+			Details: details,
+		},
+		Timestamp: time.Now(),
+	})
+}
+
+func InternalServerErrorResponse(c *fiber.Ctx, message string, details map[string]interface{}) error {
+	return c.Status(fiber.StatusInternalServerError).JSON(APIResponse{
+		Success: false,
+		Message: message,
+		Error: &APIError{
+			Code:    "INTERNAL_ERROR",
+			Message: message,
+			Details: details,
+		},
+		Timestamp: time.Now(),
+	})
+}

@@ -2,9 +2,11 @@ package services
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"harmancioglue/url-shortener/internal/common/utils"
+	"harmancioglue/url-shortener/internal/config"
 	"harmancioglue/url-shortener/internal/domain/entity"
 	"harmancioglue/url-shortener/internal/domain/repository"
 	"harmancioglue/url-shortener/internal/domain/service"
@@ -15,6 +17,7 @@ import (
 type UrlService struct {
 	urlRepository repository.UrlRepository
 	idGenerator   service.IDGenerator
+	config        *config.Config
 }
 
 func (u UrlService) ShortenUrl(request request.ShortenURLRequest) (*response.ShortenURLResponse, error) {
@@ -23,8 +26,10 @@ func (u UrlService) ShortenUrl(request request.ShortenURLRequest) (*response.Sho
 		return nil, err
 	}
 	if existingURL != nil {
+		fullShortURL := fmt.Sprintf("http://%s:%d/%s", u.config.Server.Host, u.config.Server.Port, existingURL.ShortCode)
 		return &response.ShortenURLResponse{
-			ShortURL: existingURL.ShortCode,
+			ShortURL:    fullShortURL,
+			OriginalURL: existingURL.OriginalURL,
 		}, nil
 	}
 
@@ -49,8 +54,10 @@ func (u UrlService) ShortenUrl(request request.ShortenURLRequest) (*response.Sho
 		return nil, err
 	}
 
+	fullShortURL := fmt.Sprintf("http://%s:%d/%s", u.config.Server.Host, u.config.Server.Port, shortCode)
 	return &response.ShortenURLResponse{
-		ShortURL: shortCode,
+		ShortURL:    fullShortURL,
+		OriginalURL: request.URL,
 	}, nil
 }
 
@@ -75,9 +82,10 @@ func (u UrlService) GetOriginalURL(shortCode string) (*response.GetURLResponse, 
 	}, nil
 }
 
-func NewUrlService(urlRepository repository.UrlRepository, idGenerator service.IDGenerator) UrlService {
+func NewUrlService(urlRepository repository.UrlRepository, idGenerator service.IDGenerator, config *config.Config) UrlService {
 	return UrlService{
 		urlRepository: urlRepository,
 		idGenerator:   idGenerator,
+		config:        config,
 	}
 }

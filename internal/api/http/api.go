@@ -14,7 +14,9 @@ type API struct {
 }
 
 func NewApi(application *app.Application) *API {
-	api := &API{}
+	api := &API{
+		Application: *application,
+	}
 
 	api.Server = fiber.New()
 

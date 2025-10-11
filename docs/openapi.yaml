@@ -1,0 +1,321 @@
+openapi: 3.1.0
+info:
+  title: URL Shortener Service API
+  description: |
+    A high-performance URL shortener service built with Go and Clean Architecture principles.
+    This service provides RESTful APIs for creating shortened URLs and redirecting users to original URLs.
+    
+    ## Features
+    - Fast URL shortening using Snowflake ID generation
+    - Redirect service with click tracking
+    - Clean Architecture for maintainability
+    - MySQL database with GORM
+    - RESTful API design
+    
+    ## Base URL
+    ```
+    http://localhost:8080
+    ```
+  version: 1.0.0
+  contact:
+    name: URL Shortener Service
+    email: support@example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8080
+    description: Development server
+  - url: https://api.yourdomain.com
+    description: Production server
+
+paths:
+  /shorten:
+    post:
+      tags:
+        - URL Shortener
+      summary: Create a shortened URL
+      description: |
+        Generates a short URL from a long URL using Snowflake ID generation and Base62 encoding.
+        If the URL has already been shortened, it returns the existing short URL.
+        
+        ## Process
+        1. Validates the input URL format
+        2. Checks if URL already exists in database
+        3. Generates unique Snowflake ID if new URL
+        4. Encodes ID to Base62 short code
+        5. Stores mapping in database
+        6. Returns complete shortened URL
+      operationId: shortenUrl
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShortenURLRequest'
+            examples:
+              basic:
+                summary: Basic URL shortening
+                value:
+                  url: "https://www.example.com/very/long/url/that/needs/to/be/shortened"
+              github:
+                summary: GitHub repository URL
+                value:
+                  url: "https://github.com/harmancioglue/url-shortener"
+      responses:
+        '201':
+          description: URL shortened successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShortenURLSuccessResponse'
+              examples:
+                success:
+                  summary: Successful URL shortening
+                  value:
+                    success: true
+                    message: "URL shortened successfully"
+                    data:
+                      short_url: "http://localhost:8080/KHlY5UTAnS"
+                      original_url: "https://www.example.com/very/long/url/that/needs/to/be/shortened"
+                    timestamp: "2025-10-11T14:05:43.565573+03:00"
+                    request_id: ""
+        '400':
+          description: Bad request - Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_url:
+                  summary: Invalid URL format
+                  value:
+                    success: false
+                    message: "Invalid request body"
+                    data:
+                      error: "invalid URL format"
+                    timestamp: "2025-10-11T14:05:43.565573+03:00"
+                    request_id: ""
+                missing_url:
+                  summary: Missing URL field
+                  value:
+                    success: false
+                    message: "URL is required"
+                    data:
+                      field: "url"
+                    timestamp: "2025-10-11T14:05:43.565573+03:00"
+                    request_id: ""
+
+  /{short_code}:
+    get:
+      tags:
+        - URL Shortener
+      summary: Get original URL by short code
+      description: |
+        Retrieves the original URL associated with a short code and increments the click count.
+        This endpoint is typically used for redirecting users to the original URL.
+        
+        ## Process
+        1. Validates the short code parameter
+        2. Looks up the URL in database
+        3. Increments click count if found
+        4. Returns original URL information
+        
+        ## Usage
+        - For redirects: Use the short URL directly (e.g., http://localhost:8080/KHlY5UTAnS)
+        - For API access: Call this endpoint with the short code
+      operationId: getUrlByShortCode
+      parameters:
+        - name: short_code
+          in: path
+          required: true
+          description: The short code generated when URL was shortened
+          schema:
+            type: string
+            pattern: '^[a-zA-Z0-9]+$'
+            minLength: 1
+            maxLength: 255
+          examples:
+            valid_code:
+              summary: Valid short code
+              value: "KHlY5UTAnS"
+      responses:
+        '200':
+          description: URL retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetURLSuccessResponse'
+              examples:
+                success:
+                  summary: Successful URL retrieval
+                  value:
+                    success: true
+                    message: "URL retrieved successfully"
+                    data:
+                      original_url: "https://www.example.com/very/long/url/that/needs/to/be/shortened"
+                      click_count: 15
+                    timestamp: "2025-10-11T14:06:30.738326+03:00"
+                    request_id: ""
+        '400':
+          description: Bad request - Invalid short code
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missing_code:
+                  summary: Missing short code
+                  value:
+                    success: false
+                    message: "Short code is required"
+                    data:
+                      field: "url"
+                    timestamp: "2025-10-11T14:06:30.738326+03:00"
+                    request_id: ""
+        '404':
+          description: URL not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                not_found:
+                  summary: Short code not found
+                  value:
+                    success: false
+                    message: "URL not found"
+                    data:
+                      short_code: "invalidcode"
+                    timestamp: "2025-10-11T14:06:30.738326+03:00"
+                    request_id: ""
+
+components:
+  schemas:
+    ShortenURLRequest:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          format: uri
+          description: The long URL to be shortened
+          example: "https://www.example.com/very/long/url/that/needs/to/be/shortened"
+      additionalProperties: false
+
+    ShortenURLResponse:
+      type: object
+      properties:
+        short_url:
+          type: string
+          format: uri
+          description: The complete shortened URL including domain
+          example: "http://localhost:8080/KHlY5UTAnS"
+        original_url:
+          type: string
+          format: uri
+          description: The original long URL
+          example: "https://www.example.com/very/long/url/that/needs/to/be/shortened"
+      additionalProperties: false
+
+    GetURLResponse:
+      type: object
+      properties:
+        original_url:
+          type: string
+          format: uri
+          description: The original long URL
+          example: "https://www.example.com/very/long/url/that/needs/to/be/shortened"
+        click_count:
+          type: integer
+          format: int64
+          description: Number of times this URL has been accessed
+          example: 15
+      additionalProperties: false
+
+    BaseResponse:
+      type: object
+      required:
+        - success
+        - message
+        - timestamp
+        - request_id
+      properties:
+        success:
+          type: boolean
+          description: Indicates if the request was successful
+          example: true
+        message:
+          type: string
+          description: Human-readable message describing the result
+          example: "URL shortened successfully"
+        timestamp:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of the response
+          example: "2025-10-11T14:05:43.565573+03:00"
+        request_id:
+          type: string
+          description: Unique identifier for the request (empty in current implementation)
+          example: ""
+
+    SuccessResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              description: Response data payload
+              oneOf:
+                - $ref: '#/components/schemas/ShortenURLResponse'
+                - $ref: '#/components/schemas/GetURLResponse'
+
+    ErrorResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              description: Error details
+              additionalProperties: true
+              examples:
+                field_error:
+                  field: "url"
+                general_error:
+                  error: "invalid URL format"
+
+    ShortenURLSuccessResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/ShortenURLResponse'
+
+    GetURLSuccessResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/GetURLResponse'
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: URL Shortener
+    description: URL shortening and redirection operations
+
+externalDocs:
+  description: Find out more about URL Shortener Service
+  url: https://github.com/harmancioglue/url-shortener

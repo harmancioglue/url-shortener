@@ -1,13 +1,16 @@
 package config
 
 import (
+	"github.com/joho/godotenv"
+	"log"
 	"os"
 	"strconv"
 )
 
 type Config struct {
-	Server ServerConfig
-	DB     DatabaseConfig
+	Server   ServerConfig
+	DB       DatabaseConfig
+	WorkerID int
 }
 
 type ServerConfig struct {
@@ -27,6 +30,10 @@ type DatabaseConfig struct {
 func Load() (*Config, error) {
 	config := &Config{}
 
+	if err := godotenv.Load(); err != nil {
+		log.Println(".env dosyası bulunamadı")
+	}
+
 	// Server configuration
 	config.Server.Host = getEnv("SERVER_HOST", "localhost")
 	config.Server.Port = getEnvInt("SERVER_PORT")
@@ -38,6 +45,8 @@ func Load() (*Config, error) {
 	config.DB.Password = getEnv("DB_PASSWORD", "")
 	config.DB.DBName = getEnv("DB_NAME", "url_shortener")
 	config.DB.SSLMode = getEnv("DB_SSLMODE", "disable")
+
+	config.WorkerID = getEnvInt("WORKER_ID")
 
 	return config, nil
 }
@@ -57,4 +66,3 @@ func getEnvInt(key string) int {
 
 	return v
 }
-

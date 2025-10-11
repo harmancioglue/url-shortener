@@ -15,7 +15,7 @@ import (
 func main() {
 	log.Println("🚀 Url Shortener Service starting...")
 
-	cnfig, err := config.Load()
+	config, err := config.Load()
 	if err != nil {
 		log.Fatalf("Config creation error: %v", err)
 	}
@@ -24,7 +24,7 @@ func main() {
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
 
-	application, err := app.Init(cnfig)
+	application, err := app.Init(config)
 	if err != nil {
 		log.Fatalf("Application creation error: %v", err)
 	}
@@ -32,7 +32,7 @@ func main() {
 	api := http.NewApi(application)
 
 	go func() {
-		addr := fmt.Sprintf("%s:%d", cnfig.Server.Host, cnfig.Server.Port)
+		addr := fmt.Sprintf("%s:%d", config.Server.Host, config.Server.Port)
 		if err = api.Server.Listen(addr); err != nil {
 			log.Println("🔥 Url Shortener Service closing...")
 			ch <- os.Interrupt
